@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch Audio-Quiz: Kurzformen hören</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #34495e;
+            --accent: #3498db;
+            --success: #27ae60;
+            --error: #e74c3c;
+            --bg: #f9f9f9;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--primary);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 15px;
+        }
+
+        .container {
+            background: white;
+            width: 100%;
+            max-width: 500px;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .audio-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            font-size: 2rem;
+            cursor: pointer;
+            margin: 20px 0;
+            transition: transform 0.2s, background 0.3s;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
+        }
+
+        .audio-btn:hover { transform: scale(1.05); background: #2980b9; }
+        .audio-btn:active { transform: scale(0.95); }
+
+        .options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .opt-btn {
+            padding: 20px 10px;
+            font-size: 1.2rem;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: bold;
+        }
+
+        .opt-btn:hover:not(:disabled) { border-color: var(--accent); background: #f0f8ff; }
+        .opt-btn.correct { background-color: var(--success); color: white; border-color: var(--success); }
+        .opt-btn.wrong { background-color: var(--error); color: white; border-color: var(--error); }
+
+        .status { margin-top: 20px; font-weight: bold; min-height: 24px; }
+        .progress { color: #7f8c8d; font-size: 0.9rem; margin-bottom: 10px; }
+
+        .btn-next, .btn-restart {
+            margin-top: 20px;
+            padding: 10px 25px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            display: none;
+        }
+
+        @media (max-width: 400px) {
+            .opt-btn { font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="progress" id="progress">Frage 1 von 6</div>
+    <h2>Was hörst du?</h2>
+    <p>Klicke auf den Lautsprecher und wähle die Form, die gesprochen wurde.</p>
+
+    <button class="audio-btn" id="playBtn">🔊</button>
+
+    <div class="options">
+        <button class="opt-btn" onclick="check(this, 'ничего')">ничего</button>
+        <button class="opt-btn" onclick="check(this, 'ничё')">ничё</button>
+    </div>
+
+    <div class="status" id="status"></div>
+    <button class="btn-next" id="nextBtn" onclick="nextQuestion()">Nächste Frage</button>
+    <button class="btn-restart" id="restartBtn" onclick="initQuiz()">Neustart</button>
+</div>
+
+<script>
+    const quizData = [
+        { word: "ничего", label: "Standardform" },
+        { word: "ничё", label: "Kurzform" },
+        { word: "ничего", label: "Standardform" },
+        { word: "ничё", label: "Kurzform" },
+        { word: "ничё", label: "Kurzform" },
+        { word: "ничего", label: "Standardform" }
+    ];
+
+    let current = 0;
+    const playBtn = document.getElementById('playBtn');
+    const status = document.getElementById('status');
+    const nextBtn = document.getElementById('nextBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const progressText = document.getElementById('progress');
+    const optionBtns = document.querySelectorAll('.opt-btn');
+
+    // Sprach-Synthese vorbereiten
+    function speak(text) {
+        const msg = new SpeechSynthesisUtterance();
+        msg.text = text;
+        msg.lang = 'ru-RU'; // Setzt die Sprache auf Russisch
+        msg.rate = 0.8;    // Etwas langsamer für Lerner
+        window.speechSynthesis.speak(msg);
+    }
+
+    function initQuiz() {
+        current = 0;
+        restartBtn.style.display = 'none';
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        status.innerText = "";
+        nextBtn.style.display = 'none';
+        progressText.innerText = `Frage ${current + 1} von ${quizData.length}`;
+        
+        optionBtns.forEach(btn => {
+            btn.classList.remove('correct', 'wrong');
+            btn.disabled = false;
+        });
+    }
+
+    playBtn.onclick = () => speak(quizData[current].word);
+
+    function check(btn, choice) {
+        const correctWord = quizData[current].word;
+        optionBtns.forEach(b => b.disabled = true);
+
+        if (choice === correctWord) {
+            btn.classList.add('correct');
+            status.innerText = "Richtig! Das ist die " + quizData[current].label + ".";
+            status.style.color = "var(--success)";
+        } else {
+            btn.classList.add('wrong');
+            status.innerText = "Nicht ganz. Das war die " + quizData[current].label + ".";
+            status.style.color = "var(--error)";
+            // Zeige richtige Antwort
+            optionBtns.forEach(b => { if(b.innerText === correctWord) b.classList.add('correct'); });
+        }
+
+        if (current < quizData.length - 1) {
+            nextBtn.style.display = 'inline-block';
+        } else {
+            restartBtn.style.display = 'inline-block';
+        }
+    }
+
+    function nextQuestion() {
+        current++;
+        loadQuestion();
+    }
+
+    // Quiz beim Start laden
+    initQuiz();
+</script>
+
+</body>
+</html>
