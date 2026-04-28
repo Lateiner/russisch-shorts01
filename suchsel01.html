@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Russisch-Suchsel: Nichts oder Nicht Schlecht?</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --success: #27ae60;
+            --bg: #f4f7f6;
+            --cell-size: 45px;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            touch-action: none; /* Verhindert Scrolling während des Markierens */
+        }
+
+        h2 { color: var(--primary); margin: 10px 0; text-align: center; }
+        .instr { color: #666; margin-bottom: 15px; text-align: center; max-width: 500px; }
+
+        .word-list {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            max-width: 500px;
+        }
+
+        .word-item {
+            padding: 5px 12px;
+            background: white;
+            border-radius: 20px;
+            border: 2px solid #ddd;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .word-item.found {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+            text-decoration: line-through;
+        }
+
+        .grid-container {
+            background: white;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            user-select: none;
+        }
+
+        #grid {
+            display: grid;
+            grid-template-columns: repeat(10, var(--cell-size));
+            grid-template-rows: repeat(10, var(--cell-size));
+            gap: 2px;
+            cursor: pointer;
+        }
+
+        .cell {
+            width: var(--cell-size);
+            height: var(--cell-size);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #fff;
+            border: 1px solid #eee;
+            font-weight: bold;
+            font-size: 1.2rem;
+            border-radius: 4px;
+        }
+
+        .cell.highlighted { background-color: #e1f5fe; }
+        .cell.selected { background-color: var(--accent); color: white; }
+        .cell.correct { background-color: var(--success); color: white; }
+
+        .controls { margin-top: 20px; }
+        .btn-restart {
+            padding: 10px 25px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 500px) {
+            :root { --cell-size: 32px; }
+            .cell { font-size: 0.9rem; }
+            h2 { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Russisch-Suchsel</h2>
+    <p class="instr">Suche die Begriffe aus dem Video im Gitter (waagerecht oder senkrecht).</p>
+
+    <div class="word-list" id="wordList"></div>
+
+    <div class="grid-container">
+        <div id="grid"></div>
+    </div>
+
+    <div class="controls">
+        <button class="btn-restart" onclick="initGame()">Neustart</button>
+    </div>
+
+    <script>
+        const wordsToFind = ["НИЧЕГО", "НЕПЛОХО", "НИЧЁ"]; // "НИЧЕГОТАК" optional möglich
+        const gridSize = 10;
+        let grid = [];
+        let isSelecting = false;
+        let selectionStart = null;
+        let selectedCells = [];
+
+        function initGame() {
+            const gridElement = document.getElementById('grid');
+            const wordListElement = document.getElementById('wordList');
+            gridElement.innerHTML = '';
+            wordListElement.innerHTML = '';
+            
+            // Wortliste anzeigen
+            wordsToFind.forEach(word => {
+                const span = document.createElement('span');
+                span.className = 'word-item';
+                span.id = 'word-' + word;
+                span.innerText = word;
+                wordListElement.appendChild(span);
+            });
+
+            // Leeres Gitter erstellen
+            grid = Array(gridSize).fill().map(() => Array(gridSize).fill(''));
+
+            // Wörter platzieren (einfaches Beispiel: nur horizontal/vertikal)
+            wordsToFind.forEach(word => {
+                let placed = false;
+                while (!placed) {
+                    const direction = Math.random() > 0.5 ? 'H' : 'V';
+                    const row = Math.floor(Math.random() * (direction === 'V' ? gridSize - word.length : gridSize));
+                    const col = Math.floor(Math.random() * (direction === 'H' ? gridSize - word.length : gridSize));
+                    
+                    let canPlace = true;
+                    for (let i = 0; i < word.length; i++) {
+                        const r = direction === 'V' ? row + i : row;
+                        const c = direction === 'H' ? col + i : col;
+                        if (grid[r][c] !== '' && grid[r][c] !== word[i]) {
+                            canPlace = false;
+                            break;
+                        }
+                    }
+
+                    if (canPlace) {
+                        for (let i = 0; i < word.length; i++) {
+                            const r = direction === 'V' ? row + i : row;
+                            const c = direction === 'H' ? col + i : col;
+                            grid[r][c] = word[i];
+                        }
+                        placed = true;
+                    }
+                }
+            });
+
+            // Gitter mit Zufallsbuchstaben füllen
+            const alphabet = "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
+            for (let r = 0; r < gridSize; r++) {
+                for (let c = 0; c < gridSize; c++) {
+                    if (grid[r][c] === '') {
+                        grid[r][c] = alphabet[Math.floor(Math.random() * alphabet.length)];
+                    }
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.innerText = grid[r][c];
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    
+                    // Events für Mouse & Touch
+                    cell.addEventListener('mousedown', startSelection);
+                    cell.addEventListener('mouseover', updateSelection);
+                    cell.addEventListener('touchstart', (e) => { e.preventDefault(); startSelection(e.touches[0]); });
+                    cell.addEventListener('touchmove', (e) => { e.preventDefault(); handleTouchMove(e.touches[0]); });
+                    cell.addEventListener('touchend', endSelection);
+                    
+                    gridElement.appendChild(cell);
+                }
+            }
+            window.addEventListener('mouseup', endSelection);
+        }
+
+        function getCellFromCoords(x, y) {
+            const el = document.elementFromPoint(x, y);
+            return el && el.classList.contains('cell') ? el : null;
+        }
+
+        function handleTouchMove(touch) {
+            const cell = getCellFromCoords(touch.clientX, touch.clientY);
+            if (cell) updateSelection({ target: cell });
+        }
+
+        function startSelection(e) {
+            isSelecting = true;
+            selectionStart = { r: parseInt(e.target.dataset.row), c: parseInt(e.target.dataset.col) };
+            clearSelection();
+            e.target.classList.add('selected');
+            selectedCells = [e.target];
+        }
+
+        function updateSelection(e) {
+            if (!isSelecting) return;
+            const current = { r: parseInt(e.target.dataset.row), c: parseInt(e.target.dataset.col) };
+            
+            // Nur waagerecht oder senkrecht erlauben
+            if (current.r === selectionStart.r || current.c === selectionStart.c) {
+                clearSelection();
+                const cells = document.querySelectorAll('.cell');
+                selectedCells = [];
+                
+                const rMin = Math.min(selectionStart.r, current.r);
+                const rMax = Math.max(selectionStart.r, current.r);
+                const cMin = Math.min(selectionStart.c, current.c);
+                const cMax = Math.max(selectionStart.c, current.c);
+
+                cells.forEach(cell => {
+                    const r = parseInt(cell.dataset.row);
+                    const c = parseInt(cell.dataset.col);
+                    if (r >= rMin && r <= rMax && c >= cMin && c <= cMax) {
+                        cell.classList.add('selected');
+                        selectedCells.push(cell);
+                    }
+                });
+            }
+        }
+
+        function endSelection() {
+            if (!isSelecting) return;
+            isSelecting = false;
+            const foundWord = selectedCells.map(c => c.innerText).join('');
+            const reversedWord = foundWord.split('').reverse().join('');
+
+            if (wordsToFind.includes(foundWord) || wordsToFind.includes(reversedWord)) {
+                const word = wordsToFind.includes(foundWord) ? foundWord : reversedWord;
+                selectedCells.forEach(c => c.classList.add('correct'));
+                document.getElementById('word-' + word).classList.add('found');
+            }
+            clearSelection();
+        }
+
+        function clearSelection() {
+            document.querySelectorAll('.cell').forEach(c => c.classList.remove('selected'));
+        }
+
+        initGame();
+    </script>
+</body>
+</html>
