@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ranking: Intensität der Bewertung</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --success: #27ae60;
+            --danger: #e74c3c;
+            --bg: #f8f9fa;
+            --neutral: #7f8c8d;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background: white;
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        h2 { text-align: center; color: var(--primary); margin-top: 0; }
+        .instr { text-align: center; color: #666; margin-bottom: 25px; font-size: 0.95rem; line-height: 1.4; }
+
+        .ranking-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+
+        .rank-item {
+            display: flex;
+            align-items: center;
+            background: white;
+            border: 2px solid #edf2f7;
+            padding: 18px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+
+        .rank-item:hover { border-color: var(--accent); background: #f0f9ff; }
+        .rank-item.selected { border-color: var(--accent); background: #e1f5fe; border-style: dashed; transform: scale(1.02); }
+
+        .number {
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 15px;
+            font-weight: bold;
+        }
+
+        .content { flex: 1; font-weight: 600; font-size: 1.1rem; }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .full-width { grid-column: span 2; }
+
+        button {
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+        }
+
+        button:active { transform: scale(0.98); }
+
+        .btn-check { background: var(--primary); color: white; }
+        .btn-solution { background: var(--neutral); color: white; }
+        .btn-restart { background: #ecf0f1; color: var(--primary); border: 1px solid #bdc3c7; }
+        button:hover { opacity: 0.9; }
+
+        #feedback {
+            margin-top: 20px;
+            text-align: center;
+            font-weight: bold;
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .correct-item { border-color: var(--success) !important; background: #f0fff4 !important; }
+        .wrong-item { border-color: var(--danger) !important; background: #fff5f5 !important; }
+
+        @media (max-width: 480px) {
+            .button-group { grid-template-columns: 1fr; }
+            .full-width { grid-column: span 1; }
+            .content { font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Ranking: Wie positiv ist das Lob?</h2>
+    <p class="instr">Ordne die Sätze nach ihrer Intensität.<br><b>1 = Ganz okay</b> bis <b>4 = Am positivsten</b>.<br>Klicke zwei Sätze an, um ihre Plätze zu tauschen.</p>
+
+    <div class="ranking-list" id="rankingList"></div>
+
+    <div class="button-group">
+        <button class="btn-check" onclick="checkOrder()">Prüfen</button>
+        <button class="btn-solution" onclick="showSolution()">Lösung</button>
+        <button class="btn-restart full-width" onclick="restartGame()">Neustart</button>
+    </div>
+
+    <div id="feedback"></div>
+</div>
+
+<script>
+    const correctOrder = [
+        "Ничего.",                  // Basis
+        "Ничего tak получилось.",   // Verstärkt
+        "Неплохо получилось!",      // Klares Lob
+        "Очень даже ничего!"        // Höchste Intensität
+    ];
+
+    let currentOrder = [];
+    let selectedIdx = null;
+
+    function restartGame() {
+        currentOrder = [...correctOrder].sort(() => Math.random() - 0.5);
+        selectedIdx = null;
+        document.getElementById('feedback').style.display = 'none';
+        renderList();
+    }
+
+    function renderList() {
+        const list = document.getElementById('rankingList');
+        list.innerHTML = '';
+        
+        currentOrder.forEach((text, index) => {
+            const item = document.createElement('div');
+            item.className = 'rank-item' + (selectedIdx === index ? ' selected' : '');
+            item.innerHTML = `
+                <div class="number">${index + 1}</div>
+                <div class="content">${text}</div>
+            `;
+            item.onclick = () => swapItems(index);
+            list.appendChild(item);
+        });
+    }
+
+    function swapItems(index) {
+        if (selectedIdx === null) {
+            selectedIdx = index;
+        } else {
+            const temp = currentOrder[selectedIdx];
+            currentOrder[selectedIdx] = currentOrder[index];
+            currentOrder[index] = temp;
+            selectedIdx = null;
+        }
+        document.getElementById('feedback').style.display = 'none';
+        renderList();
+    }
+
+    function checkOrder() {
+        const items = document.querySelectorAll('.rank-item');
+        let correctCount = 0;
+
+        currentOrder.forEach((text, index) => {
+            items[index].classList.remove('correct-item', 'wrong-item');
+            if (text === correctOrder[index]) {
+                items[index].classList.add('correct-item');
+                correctCount++;
+            } else {
+                items[index].classList.add('wrong-item');
+            }
+        });
+
+        const feedback = document.getElementById('feedback');
+        feedback.style.display = 'block';
+        
+        if (correctCount === correctOrder.length) {
+            feedback.innerText = "Hervorragend! Alles richtig sortiert. ✅";
+            feedback.style.color = "#155724";
+            feedback.style.backgroundColor = "#d4edda";
+        } else {
+            feedback.innerText = "Noch nicht ganz. Tausche die Positionen der roten Felder!";
+            feedback.style.color = "#721c24";
+            feedback.style.backgroundColor = "#f8d7da";
+        }
+    }
+
+    function showSolution() {
+        currentOrder = [...correctOrder];
+        selectedIdx = null;
+        renderList();
+        
+        const items = document.querySelectorAll('.rank-item');
+        items.forEach(item => item.classList.add('correct-item'));
+        
+        const feedback = document.getElementById('feedback');
+        feedback.style.display = 'block';
+        feedback.innerText = "Reihenfolge: Basis -> Verstärkung -> Klares Lob -> Maximum.";
+        feedback.style.color = "#0c5460";
+        feedback.style.backgroundColor = "#d1ecf1";
+    }
+
+    // Erster Start
+    restartGame();
+</script>
+
+</body>
+</html>
