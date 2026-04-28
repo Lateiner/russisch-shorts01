@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory: Russische Synonyme</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --success: #27ae60;
+            --bg: #f4f7f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h2 { color: var(--primary); text-align: center; }
+        p { margin-bottom: 20px; text-align: center; color: #666; max-width: 500px; }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            width: 100%;
+            max-width: 600px;
+            perspective: 1000px;
+        }
+
+        .memory-card {
+            height: 100px;
+            background-color: var(--accent);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: bold;
+            text-align: center;
+            padding: 5px;
+            user-select: none;
+            transition: transform 0.4s, opacity 0.8s ease-out; /* Deckkraft-Übergang hinzugefügt */
+            transform-style: preserve-3d;
+            position: relative;
+            opacity: 1;
+        }
+
+        .memory-card.flipped {
+            transform: rotateY(180deg);
+            background-color: white;
+            color: var(--primary);
+            border: 2px solid var(--accent);
+        }
+
+        .memory-card.matched {
+            background-color: var(--success);
+            border-color: var(--success);
+            color: white;
+            cursor: default;
+            opacity: 0; /* Lässt die Karte verschwinden */
+            pointer-events: none; /* Verhindert Interaktion nach dem Verschwinden */
+        }
+
+        .card-content {
+            display: none;
+            transform: rotateY(180deg);
+        }
+
+        .flipped .card-content {
+            display: block;
+        }
+
+        .flipped .card-back {
+            display: none;
+        }
+
+        .restart-btn {
+            margin-top: 30px;
+            padding: 12px 25px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s;
+        }
+
+        .restart-btn:hover {
+            background: #34495e;
+        }
+
+        @media (max-width: 480px) {
+            .game-board { grid-template-columns: repeat(2, 1fr); }
+            .memory-card { height: 80px; font-size: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Memory: Synonyme & Bedeutung</h2>
+    <p>Finde die Paare. Wenn du richtig liegst, lösen sich die Karten langsam auf!</p>
+
+    <div class="game-board" id="board"></div>
+
+    <button class="restart-btn" onclick="initGame()">Spiel neustarten</button>
+
+    <script>
+        const pairs = [
+            { a: "ничего", b: "неплохо" },
+            { a: "ничего так", b: "ganz gut" },
+            { a: "ничё", b: "Kurzform" },
+            { a: "девушка ничего", b: "hübsches Mädchen" },
+            { a: "ничего получилось", b: "gut gelungen" },
+            { a: "ничего!", b: "nicht schlecht!" }
+        ];
+
+        let flippedCards = [];
+        let matchedCount = 0;
+
+        function initGame() {
+            const board = document.getElementById('board');
+            board.innerHTML = '';
+            flippedCards = [];
+            matchedCount = 0;
+            
+            let cardValues = [];
+            pairs.forEach((pair, index) => {
+                cardValues.push({ text: pair.a, pairId: index });
+                cardValues.push({ text: pair.b, pairId: index });
+            });
+
+            // Mischen
+            cardValues.sort(() => Math.random() - 0.5);
+
+            cardValues.forEach(val => {
+                const card = document.createElement('div');
+                card.className = 'memory-card';
+                card.dataset.pairId = val.pairId;
+                card.innerHTML = `
+                    <span class="card-back">?</span>
+                    <span class="card-content">${val.text}</span>
+                `;
+                card.onclick = () => flipCard(card);
+                board.appendChild(card);
+            });
+        }
+
+        function flipCard(card) {
+            // Verhindern, dass mehr als 2 Karten offen sind oder bereits verschwundene Karten geklickt werden
+            if (flippedCards.length < 2 && !card.classList.contains('flipped') && !card.classList.contains('matched')) {
+                card.classList.add('flipped');
+                flippedCards.push(card);
+
+                if (flippedCards.length === 2) {
+                    checkMatch();
+                }
+            }
+        }
+
+        function checkMatch() {
+            const [card1, card2] = flippedCards;
+            const isMatch = card1.dataset.pairId === card2.dataset.pairId;
+
+            if (isMatch) {
+                // Ein kleiner Moment, damit man die zweite Karte noch sieht, bevor beide verschwinden
+                setTimeout(() => {
+                    card1.classList.add('matched');
+                    card2.classList.add('matched');
+                    matchedCount++;
+                    flippedCards = [];
+                    
+                    if (matchedCount === pairs.length) {
+                        setTimeout(() => alert("Klasse! Alle Paare gefunden."), 1000);
+                    }
+                }, 500);
+            } else {
+                // Wenn kein Match, nach einer Sekunde wieder umdrehen
+                setTimeout(() => {
+                    card1.classList.remove('flipped');
+                    card2.classList.remove('flipped');
+                    flippedCards = [];
+                }, 1000);
+            }
+        }
+
+        initGame();
+    </script>
+</body>
+</html>
