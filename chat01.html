@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Russisch-Chat: Die Nuancen von ничего</title>
+    <style>
+        :root {
+            --chat-bg: #e5ddd5;
+            --header-color: #075e54;
+            --msg-in: #ffffff;
+            --msg-out: #dcf8c6;
+            --accent: #34b7f1;
+            --text-main: #303030;
+            --success: #27ae60;
+            --error: #e74c3c;
+        }
+
+        body {
+            font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+            background-color: #d1d7db;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .phone-container {
+            width: 100%;
+            max-width: 450px;
+            height: 95vh;
+            background: var(--chat-bg);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Header */
+        .chat-header {
+            background: var(--header-color);
+            color: white;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 10;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            background: #aaa;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+
+        .status { font-size: 0.8rem; opacity: 0.8; }
+
+        /* Chat-Verlauf */
+        .chat-body {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+            background-repeat: repeat;
+        }
+
+        .bubble {
+            max-width: 80%;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            position: relative;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .in { align-self: flex-start; background: var(--msg-in); border-top-left-radius: 0; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+        .out { align-self: flex-end; background: var(--msg-out); border-top-right-radius: 0; box-shadow: 0 1px 1px rgba(0,0,0,0.1); }
+
+        .time { font-size: 0.7rem; color: #999; margin-top: 4px; display: block; text-align: right; }
+
+        /* Footer / Eingabe */
+        .chat-footer {
+            background: #f0f0f0;
+            padding: 15px;
+            border-top: 1px solid #ddd;
+        }
+
+        .instruction {
+            font-size: 0.85rem;
+            color: #666;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+
+        .options-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .option-btn {
+            background: white;
+            border: 1px solid #ccc;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .option-btn:active { transform: scale(0.98); }
+        .option-btn.correct { background: #d4edda; border-color: var(--success); color: #155724; }
+        .option-btn.wrong { background: #f8d7da; border-color: var(--error); color: #721c24; }
+
+        .feedback-box {
+            text-align: center;
+            padding: 10px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        #nextBtn, #restartBtn {
+            width: 100%;
+            padding: 12px;
+            background: var(--header-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            margin-top: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            display: none;
+        }
+
+        @media (max-width: 450px) {
+            .phone-container { height: 100vh; border-radius: 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="phone-container">
+    <div class="chat-header">
+        <div class="avatar" id="avatar">A</div>
+        <div>
+            <div id="contactName" style="font-weight: bold;">Alexander</div>
+            <div class="status">online</div>
+        </div>
+    </div>
+
+    <div class="chat-body" id="chatDisplay">
+        </div>
+
+    <div class="chat-footer">
+        <div id="interactionArea">
+            <div class="instruction">Wähle die passende Antwort:</div>
+            <div class="options-container" id="options"></div>
+        </div>
+        <div id="feedback" class="feedback-box"></div>
+        <button id="nextBtn" onclick="loadTask()">Nächste Nachricht</button>
+        <button id="restartBtn" onclick="resetGame()">Quiz neustarten</button>
+    </div>
+</div>
+
+<script>
+    const tasks = [
+        {
+            sender: "Alexander",
+            avatar: "A",
+            message: "Привет! 👋 Hast du das Bild gesehen, das ich gemalt habe? Wie gefällt es dir?",
+            options: [
+                { text: "Ничего так получилось!", correct: true, feedback: "Правильно! (Richtig!) Das ist ein tolles Lob für seine Arbeit." },
+                { text: "Я ничего не вижу.", correct: false, feedback: "Das bedeutet 'Ich sehe nichts'. Das wäre hier unhöflich." },
+                { text: "Ничего нет.", correct: false, feedback: "Das heißt 'Es ist nichts da'. Passt nicht zum Kontext." }
+            ]
+        },
+        {
+            sender: "Elena",
+            avatar: "E",
+            message: "Wie findest du eigentlich meinen neuen Nachbarn? Er ist doch ganz nett, oder?",
+            options: [
+                { text: "Он нигде.", correct: false, feedback: "Das heißt 'Er ist nirgendwo'. Völlig falscher Kontext." },
+                { text: "Он ничего такой!", correct: true, feedback: "Правильно! Das ist ein Kompliment für einen Mann ('Er ist ganz hübsch/sympathisch')." },
+                { text: "Он никто.", correct: false, feedback: "Das bedeutet 'Er ist niemand' (wertlos). Ziemlich fies!" }
+            ]
+        },
+        {
+            sender: "Max",
+            avatar: "M",
+            message: "Sorry, dass ich das Glas kaputt gemacht habe... Bist du mir böse? 😔",
+            options: [
+                { text: "Ничего!", correct: true, feedback: "Правильно! In diesem Fall bedeutet es 'Macht nichts!' oder 'Kein Problem!'." },
+                { text: "Ничего так.", correct: false, feedback: "Das passt hier nicht, das wäre eine Bewertung von Qualität." },
+                { text: "Ничё такой.", correct: false, feedback: "Das ist ein Kompliment für eine Person, keine Entschuldigung." }
+            ]
+        },
+        {
+            sender: "Katja",
+            avatar: "K",
+            message: "Guck mal mein neues Kleid an! Steht es mir? 👗",
+            options: [
+                { text: "Ничё так!", correct: true, feedback: "Правильно! Die Kurzform 'ничё' mit 'так' ist ein super lässiges Lob." },
+                { text: "Ничего не.", correct: false, feedback: "Das ist grammatikalisch unvollständig." },
+                { text: "Нигде так.", correct: false, feedback: "Das bedeutet 'Nirgendwo so'. Ergibt hier keinen Sinn." }
+            ]
+        },
+        {
+            sender: "Dima",
+            avatar: "D",
+            message: "Wir waren gestern in dem neuen Film. Hast du ihn schon gesehen?",
+            options: [
+                { text: "Говорят, он ничего.", correct: true, feedback: "Правильно! 'Man sagt, er ist ganz gut / nicht übel'." },
+                { text: "Говоряat, он никто.", correct: false, feedback: "Wieder: 'Niemand'. Filme sind keine Personen." },
+                { text: "Он ничего не.", correct: false, feedback: "Hier fehlt das Verb am Ende, um Sinn zu ergeben." }
+            ]
+        },
+        {
+            sender: "Mama",
+            avatar: "M",
+            message: "Ich habe heute zum ersten Mal Sushi selbst gemacht. Und? 🍣",
+            options: [
+                { text: "Ничего получилось!", correct: true, feedback: "Правильно! 'Es ist ganz gut geworden!' Ein schönes Lob." },
+                { text: "Никогда получилось.", correct: false, feedback: "Das hieße 'Niemals ist es geworden'. Grammatikalisch falsch." },
+                { text: "Ничего нет.", correct: false, feedback: "Mama wäre traurig – das hieße, es ist gar nichts da zum Essen." }
+            ]
+        }
+    ];
+
+    let currentTask = 0;
+
+    function initChat() {
+        loadTask();
+    }
+
+    function loadTask() {
+        if (currentTask >= tasks.length) {
+            showEnd();
+            return;
+        }
+
+        const task = tasks[currentTask];
+        
+        // Header anpassen
+        document.getElementById('avatar').innerText = task.avatar;
+        document.getElementById('contactName').innerText = task.sender;
+        
+        // Chat leeren und neue Nachricht laden
+        const display = document.getElementById('chatDisplay');
+        display.innerHTML = '';
+        
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'bubble in';
+        msgDiv.innerHTML = `${task.message} <span class="time">${getTime()}</span>`;
+        display.appendChild(msgDiv);
+
+        // Feedback und Buttons resetten
+        document.getElementById('feedback').style.display = 'none';
+        document.getElementById('nextBtn').style.display = 'none';
+        document.getElementById('interactionArea').style.display = 'block';
+
+        // Optionen mischen und anzeigen
+        const optionsDiv = document.getElementById('options');
+        optionsDiv.innerHTML = '';
+        const shuffledOptions = [...task.options].sort(() => Math.random() - 0.5);
+
+        shuffledOptions.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt.text;
+            btn.onclick = () => handleReply(opt, btn);
+            optionsDiv.appendChild(btn);
+        });
+    }
+
+    function handleReply(opt, btn) {
+        const buttons = document.querySelectorAll('.option-btn');
+        buttons.forEach(b => b.disabled = true);
+
+        const feedback = document.getElementById('feedback');
+        feedback.style.display = 'block';
+        feedback.innerText = opt.feedback;
+        feedback.style.color = opt.correct ? 'var(--success)' : 'var(--error)';
+
+        if (opt.correct) {
+            btn.classList.add('correct');
+            // Eigene Nachricht hinzufügen
+            const display = document.getElementById('chatDisplay');
+            const replyDiv = document.createElement('div');
+            replyDiv.className = 'bubble out';
+            replyDiv.innerHTML = `${opt.text} <span class="time">${getTime()}</span>`;
+            display.appendChild(replyDiv);
+            display.scrollTop = display.scrollHeight;
+
+            currentTask++;
+            document.getElementById('nextBtn').style.display = 'block';
+            if(currentTask === tasks.length) {
+                document.getElementById('nextBtn').innerText = "Ergebnis sehen";
+            }
+        } else {
+            btn.classList.add('wrong');
+            // Kurze Sperre aufheben, damit man es nochmal probieren kann
+            setTimeout(() => {
+                buttons.forEach(b => { if(!b.classList.contains('wrong')) b.disabled = false; });
+            }, 1000);
+        }
+    }
+
+    function getTime() {
+        const now = new Date();
+        return now.getHours() + ":" + String(now.getMinutes()).padStart(2, '0');
+    }
+
+    function showEnd() {
+        document.getElementById('interactionArea').style.display = 'none';
+        document.getElementById('nextBtn').style.display = 'none';
+        document.getElementById('feedback').innerText = "Super! Du hast alle Chats erfolgreich gemeistert!";
+        document.getElementById('feedback').style.color = 'var(--header-color)';
+        document.getElementById('restartBtn').style.display = 'block';
+    }
+
+    function resetGame() {
+        currentTask = 0;
+        document.getElementById('restartBtn').style.display = 'none';
+        document.getElementById('nextBtn').innerText = "Nächste Nachricht";
+        loadTask();
+    }
+
+    // Start
+    initChat();
+</script>
+
+</body>
+</html>
