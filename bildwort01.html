@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bild-Wort-Zuordnung: Personen beschreiben</title>
+    <style>
+        :root {
+            --primary-dark: #2c3e50;
+            --accent-blue: #3498db;
+            --success-green: #27ae60;
+            --error-red: #e74c3c;
+            --light-gray: #f4f7f6;
+            --border-color: #ddd;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-gray);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 1000px;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin: auto;
+        }
+
+        .header {
+            padding: 20px;
+            background-color: white;
+            border-bottom: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .progress-bar-container {
+            width: 80%;
+            height: 10px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            margin: 10px auto;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background-color: var(--accent-blue);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        h2 { margin: 0; color: var(--primary-dark); font-size: 1.4rem; }
+        p.instr { margin: 5px 0 0 0; color: #7f8c8d; font-size: 1rem; }
+
+        .game-area {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .image-pool {
+            flex: 1 1 300px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .image-card {
+            background-color: #eee;
+            border-radius: 8px;
+            cursor: pointer;
+            overflow: hidden;
+            border: 3px solid transparent;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .image-card:hover:not(.disabled) { border-color: var(--accent-blue); }
+        .image-card.selected { border-color: var(--accent-blue); transform: scale(0.98); }
+        .image-card.disabled { opacity: 0.4; cursor: default; filter: grayscale(100%); }
+
+        .image-card img {
+            width: 100%;
+            height: 140px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .sentence-list {
+            flex: 1 1 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .sentence-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .phrase-box {
+            flex: 1;
+            padding: 15px;
+            background-color: #eef2f3;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: var(--primary-dark);
+            text-align: center;
+        }
+
+        .drop-zone {
+            width: 70px;
+            height: 70px;
+            background-color: #ddd;
+            border-radius: 8px;
+            border: 2px dashed #999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            color: #777;
+            cursor: pointer;
+            transition: all 0.2s;
+            overflow: hidden;
+        }
+
+        .drop-zone.active { border-color: var(--accent-blue); background-color: #ebf5fb; }
+        .drop-zone.correct { background-color: var(--success-green); border-color: var(--success-green); border-style: solid;}
+        .drop-zone.incorrect { background-color: var(--error-red); border-color: var(--error-red); border-style: solid; color: white;}
+        .drop-zone img { width: 100%; height: 100%; object-fit: cover; }
+
+        .navigation {
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .nav-btn {
+            padding: 12px 30px;
+            background-color: var(--primary-dark);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.1rem;
+        }
+
+        .hidden { display: none; }
+
+        #endScreen { display: none; padding: 40px; text-align: center; }
+
+        @media (max-width: 650px) {
+            .game-area { flex-direction: column-reverse; }
+            .image-card img { height: 100px; }
+            .drop-zone { width: 60px; height: 60px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    <div id="gameContent">
+        <div class="header">
+            <h2>Runde <span id="roundCounter">1</span>/5: Personen beschreiben</h2>
+            <p class="instr">Wähle ein Bild und klicke dann auf das "?" beim passenden Satz.</p>
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="progressBar"></div>
+            </div>
+        </div>
+
+        <div class="game-area">
+            <div class="image-pool" id="imagePool"></div>
+            <div class="sentence-list" id="sentenceList"></div>
+        </div>
+
+        <div class="navigation hidden" id="navArea">
+            <button class="nav-btn" id="nextBtn" onclick="nextLevel()">Nächste Runde</button>
+        </div>
+    </div>
+
+    <div id="endScreen">
+        <h2 style="color: var(--success-green);">Hervorragend!</h2>
+        <p>Du hast alle 5 Runden gemeistert und weißt nun genau, wie man Personen mit "ничего" Komplimente macht.</p>
+        <button class="nav-btn" onclick="restartGame()">Zurück zum Anfang</button>
+    </div>
+</div>
+
+<script>
+    const levels = [
+        {
+            images: [
+                { id: "w1", src: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop" },
+                { id: "m1", src: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&h=200&fit=crop" }
+            ],
+            phrases: [
+                { match: "w1", text: "А эта девушка ничего!" },
+                { match: "m1", text: "Этот парень ничего!" }
+            ]
+        },
+        {
+            images: [
+                { id: "w2", src: "https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=200&h=200&fit=crop" },
+                { id: "m2", src: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop" }
+            ],
+            phrases: [
+                { match: "w2", text: "Она ничего такая." },
+                { match: "m2", text: "Он ничего такой." }
+            ]
+        },
+        {
+            images: [
+                { id: "w3", src: "https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=200&h=200&fit=crop" },
+                { id: "m3", src: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop" }
+            ],
+            phrases: [
+                { match: "w3", text: "Ничё такая девушка!" },
+                { match: "m3", text: "Ничё такой парень!" }
+            ]
+        },
+        {
+            images: [
+                { id: "w4", src: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop" },
+                { id: "w5", src: "https://images.unsplash.com/photo-1554151228-14d9def656e4?w=200&h=200&fit=crop" }
+            ],
+            phrases: [
+                { match: "w4", text: "А подруга у неё ничего!" },
+                { match: "w5", text: "Твоя сестра ничего!" }
+            ]
+        },
+        {
+            images: [
+                { id: "m4", src: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=200&h=200&fit=crop" },
+                { id: "m5", src: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=200&h=200&fit=crop" }
+            ],
+            phrases: [
+                { match: "m5", text: "Этот актёр ничего!" },
+                { match: "m4", text: "Твой друг ничего такой!" }
+            ]
+        }
+    ];
+
+    let currentLevel = 0;
+    let selectedId = null;
+    let matchesFound = 0;
+
+    function initLevel() {
+        const data = levels[currentLevel];
+        matchesFound = 0;
+        selectedId = null;
+        document.getElementById('roundCounter').innerText = currentLevel + 1;
+        document.getElementById('progressBar').style.width = (currentLevel / levels.length * 100) + "%";
+        document.getElementById('navArea').classList.add('hidden');
+        
+        const pool = document.getElementById('imagePool');
+        pool.innerHTML = "";
+        [...data.images].sort(() => Math.random() - 0.5).forEach(img => {
+            const div = document.createElement('div');
+            div.className = 'image-card';
+            div.id = "img-" + img.id;
+            div.onclick = () => {
+                if (div.classList.contains('disabled')) return;
+                document.querySelectorAll('.image-card').forEach(c => c.classList.remove('selected'));
+                div.classList.add('selected');
+                selectedId = img.id;
+                document.querySelectorAll('.drop-zone:not(.correct)').forEach(z => z.classList.add('active'));
+            };
+            div.innerHTML = `<img src="${img.src}">`;
+            pool.appendChild(div);
+        });
+
+        const list = document.getElementById('sentenceList');
+        list.innerHTML = "";
+        data.phrases.forEach(p => {
+            const row = document.createElement('div');
+            row.className = 'sentence-item';
+            row.innerHTML = `
+                <div class="phrase-box">${p.text}</div>
+                <div class="drop-zone" onclick="checkMatch('${p.match}', this)">?</div>
+            `;
+            list.appendChild(row);
+        });
+    }
+
+    function checkMatch(targetId, zone) {
+        if (!selectedId || zone.classList.contains('correct')) return;
+
+        if (selectedId === targetId) {
+            zone.classList.remove('active', 'incorrect');
+            zone.classList.add('correct');
+            zone.innerHTML = `<img src="${document.querySelector('#img-'+selectedId+' img').src}">`;
+            document.getElementById('img-' + selectedId).classList.add('disabled');
+            document.getElementById('img-' + selectedId).classList.remove('selected');
+            selectedId = null;
+            matchesFound++;
+            document.querySelectorAll('.drop-zone').forEach(z => z.classList.remove('active'));
+
+            if (matchesFound === levels[currentLevel].phrases.length) {
+                if (currentLevel < levels.length - 1) {
+                    document.getElementById('navArea').classList.remove('hidden');
+                } else {
+                    document.getElementById('progressBar').style.width = "100%";
+                    setTimeout(showEnd, 600);
+                }
+            }
+        } else {
+            zone.classList.add('incorrect');
+            setTimeout(() => zone.classList.remove('incorrect'), 500);
+        }
+    }
+
+    function nextLevel() { currentLevel++; initLevel(); }
+    function showEnd() { document.getElementById('gameContent').style.display='none'; document.getElementById('endScreen').style.display='block'; }
+    function restartGame() { currentLevel = 0; document.getElementById('gameContent').style.display='block'; document.getElementById('endScreen').style.display='none'; initLevel(); }
+
+    initLevel();
+</script>
+
+</body>
+</html>
