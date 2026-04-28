@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wahr oder Falsch? - Russische Umgangssprache</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --success: #27ae60;
+            --error: #e74c3c;
+            --bg: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .quiz-container {
+            background: white;
+            max-width: 600px;
+            width: 100%;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+
+        .header { text-align: center; margin-bottom: 25px; }
+        .progress { font-size: 0.9rem; color: #7f8c8d; }
+
+        .statement-card {
+            background: #eef2f3;
+            border-left: 5px solid var(--accent);
+            padding: 20px;
+            font-size: 1.2rem;
+            font-weight: 500;
+            margin-bottom: 30px;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+        }
+
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .choice-btn {
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+        }
+
+        .choice-btn:hover:not(:disabled) { border-color: var(--accent); background: #f0f7ff; }
+
+        .choice-btn.correct { background: var(--success); color: white; border-color: var(--success); }
+        .choice-btn.wrong { background: var(--error); color: white; border-color: var(--error); }
+
+        .feedback {
+            margin-top: 25px;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            display: none;
+            text-align: center;
+        }
+
+        .nav-btn {
+            display: block;
+            width: 100%;
+            margin-top: 20px;
+            padding: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        @media (max-width: 480px) {
+            .statement-card { font-size: 1.1rem; }
+            .button-group { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="quiz-container">
+    <div class="header">
+        <div class="progress">Behauptung <span id="currentNum">1</span> von 6</div>
+        <h2>Wahr oder Falsch?</h2>
+    </div>
+
+    <div id="gameBox">
+        <div class="statement-card" id="statement">
+            Lade Frage...
+        </div>
+
+        <div class="button-group">
+            <button class="choice-btn" onclick="handleChoice(true)" id="trueBtn">Richtig</button>
+            <button class="choice-btn" onclick="handleChoice(false)" id="falseBtn">Falsch</button>
+        </div>
+
+        <div id="feedback" class="feedback"></div>
+        <button id="nextBtn" class="nav-btn" style="display: none;" onclick="nextQuestion()">Nächste Behauptung</button>
+        <button id="restartBtn" class="nav-btn" style="display: none;" onclick="restartQuiz()">Quiz neustarten</button>
+    </div>
+</div>
+
+<script>
+    const quizData = [
+        {
+            text: 'Das Wort ничего kann bedeuten, dass ein Mädchen hübsch oder attraktiv ist.',
+            isTrue: true,
+            info: 'Korrekt! Das Video erklärt, dass man damit ein Kompliment machen kann.'
+        },
+        {
+            text: 'Wenn man sagt "Ничего получилось!", meint man damit meistens, dass das Ergebnis schrecklich ist.',
+            isTrue: false,
+            info: 'Falsch. Es bedeutet im Gegenteil "Nicht schlecht" oder "Ganz gut gelungen".'
+        },
+        {
+            text: 'Die Kurzform "ничё" wird hauptsächlich in der formellen Schriftsprache verwendet.',
+            isTrue: false,
+            info: 'Falsch. "ничё" ist eine rein umgangssprachliche Kurzform für Dialoge.'
+        },
+        {
+            text: 'Der Ausdruck "ничего так" dient dazu, eine positive Bewertung (nicht schlecht) zu verstärken.',
+            isTrue: true,
+            info: 'Richtig! "ничего так" ist eine sehr gängige positive Bewertung.'
+        },
+        {
+            text: 'Wörtlich übersetzt bedeutet das Wort nichts.',
+            isTrue: true,
+            info: 'Richtig. Die Bedeutung "nicht schlecht" ist eine rein umgangssprachliche Verwendung.'
+        },
+        {
+            text: 'Man kann "ничего" auch verwenden, um einen Film oder ein Konzert positiv zu bewerten.',
+            isTrue: true,
+            info: 'Richtig! Es kann allgemein für Leistungen oder Dinge genutzt werden, die "ganz gut" sind.'
+        }
+    ];
+
+    let currentIdx = 0;
+
+    function loadQuestion() {
+        const q = quizData[currentIdx];
+        document.getElementById('currentNum').innerText = currentIdx + 1;
+        document.getElementById('statement').innerText = q.text;
+        document.getElementById('feedback').style.display = 'none';
+        document.getElementById('nextBtn').style.display = 'none';
+        
+        const btns = document.querySelectorAll('.choice-btn');
+        btns.forEach(b => {
+            b.classList.remove('correct', 'wrong');
+            b.disabled = false;
+        });
+    }
+
+    function handleChoice(choice) {
+        const q = quizData[currentIdx];
+        const feedback = document.getElementById('feedback');
+        const trueBtn = document.getElementById('trueBtn');
+        const falseBtn = document.getElementById('falseBtn');
+        
+        document.querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
+
+        const isCorrect = (choice === q.isTrue);
+        
+        if (choice === true) {
+            trueBtn.classList.add(isCorrect ? 'correct' : 'wrong');
+        } else {
+            falseBtn.classList.add(isCorrect ? 'correct' : 'wrong');
+        }
+
+        // Richtige Lösung immer markieren, falls falsch geklickt wurde
+        if (!isCorrect) {
+            if (q.isTrue) trueBtn.classList.add('correct');
+            else falseBtn.classList.add('correct');
+        }
+
+        feedback.style.display = 'block';
+        feedback.innerText = q.info;
+        feedback.style.backgroundColor = isCorrect ? '#d4edda' : '#f8d7da';
+        feedback.style.color = isCorrect ? '#155724' : '#721c24';
+
+        if (currentIdx < quizData.length - 1) {
+            document.getElementById('nextBtn').style.display = 'block';
+        } else {
+            document.getElementById('restartBtn').style.display = 'block';
+        }
+    }
+
+    function nextQuestion() {
+        currentIdx++;
+        loadQuestion();
+    }
+
+    function restartQuiz() {
+        currentIdx = 0;
+        document.getElementById('restartBtn').style.display = 'none';
+        loadQuestion();
+    }
+
+    // Start
+    loadQuestion();
+</script>
+
+</body>
+</html>
