@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Quiz: Die Nuancen von ничего</title>
+    <style>
+        :root {
+            --primary-dark: #2c3e50;
+            --accent-blue: #3498db;
+            --success-green: #27ae60;
+            --error-red: #e74c3c;
+            --light-gray: #f4f7f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: var(--light-gray);
+            color: var(--primary-dark);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .quiz-card {
+            background: white;
+            max-width: 600px;
+            width: 100%;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            align-self: center;
+        }
+
+        .progress {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-bottom: 15px;
+        }
+
+        .quote-box {
+            background: #eef2f3;
+            padding: 15px;
+            border-left: 5px solid var(--accent-blue);
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin: 20px 0;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .option-btn {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.2s;
+            text-align: left;
+        }
+
+        .option-btn:hover:not(:disabled) {
+            border-color: var(--accent-blue);
+            background-color: #f0f7ff;
+        }
+
+        .option-btn.correct { background-color: #d4edda; border-color: var(--success-green); }
+        .option-btn.wrong { background-color: #f8d7da; border-color: var(--error-red); }
+
+        #feedback {
+            margin-top: 15px;
+            font-weight: bold;
+            min-height: 40px;
+        }
+
+        .nav-btn {
+            margin-top: 20px;
+            padding: 10px 25px;
+            background-color: var(--primary-dark);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .hidden { display: none; }
+
+        @media (max-width: 480px) {
+            .quiz-card { padding: 15px; }
+            .quote-box { font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="quiz-card">
+    <div class="progress">Frage <span id="currentIdx">1</span> von 8</div>
+    <h2 id="questionText">Was bedeutet dieser Satz?</h2>
+    
+    <div class="quote-box" id="quoteDisplay"></div>
+
+    <div class="options" id="optionsContainer">
+        </div>
+
+    <div id="feedback"></div>
+    <button id="nextBtn" class="nav-btn hidden" onclick="nextQuestion()">Nächste Frage</button>
+    <button id="restartBtn" class="nav-btn hidden" onclick="restartQuiz()">Quiz neustarten</button>
+</div>
+
+<script>
+    const questions = [
+        {
+            q: "Ничего получилось!",
+            options: ["Es ist nichts geworden.", "Es ist ganz gut geworden.", "Es ist misslungen."],
+            correct: 1,
+            info: "In diesem Kontext bedeutet 'ничего' so viel wie 'nicht schlecht' (неплохо)."
+        },
+        {
+            q: "А эта девушка ничего!",
+            options: ["Dieses Mädchen ist unsichtbar.", "Dieses Mädchen ist arrogant.", "Dieses Mädchen ist hübsch/sympathisch."],
+            correct: 2,
+            info: "Man nutzt 'ничего', um Personen positiv zu bewerten."
+        },
+        {
+            q: "Я ничего не вижу.",
+            options: ["Ich sehe nichts.", "Ich sehe ganz gut.", "Ich sehe eine hübsche Frau."],
+            correct: 0,
+            info: "In Verbindung mit einer Verneinung behält das Wort oft seine wörtliche Bedeutung 'nichts'."
+        },
+        {
+            q: "Ничего так получилось!",
+            options: ["Das ist gar nicht so übel.", "Das ist genau so wie nichts.", "Das hat nicht funktioniert."],
+            correct: 0,
+            info: "Die Wendung 'ничего так' verstärkt die positive Bewertung 'ganz gut'."
+        },
+        {
+            q: "Ничё так!",
+            options: ["Nichts da!", "Ganz ordentlich!", "Alles kaputt!"],
+            correct: 1,
+            info: "'Ничё' ist die typische Kurzform für die schnelle Umgangssprache."
+        },
+        {
+            q: "Ты нарисовала картину? Ничего получилось!",
+            options: ["Das Bild ist leer.", "Das Bild ist schrecklich.", "Das Bild ist recht gut geworden."],
+            correct: 2,
+            info: "Ein klassisches Beispiel aus dem Video für ein Lob."
+        },
+        {
+            q: "У меня ничего нет.",
+            options: ["Ich habe alles.", "Ich habe nichts.", "Ich habe etwas Gutes."],
+            correct: 1,
+            info: "Hier handelt es sich um die wörtliche Bedeutung des Wortes."
+        },
+        {
+            q: "Она ничего такая.",
+            options: ["Sie ist ziemlich attraktiv.", "Sie ist gar nicht da.", "Sie ist sehr traurig."],
+            correct: 0,
+            info: "Auch hier wird 'ничего' als positives Adjektiv für eine Person verwendet."
+        }
+    ];
+
+    let currentQuestion = 0;
+
+    function loadQuestion() {
+        const q = questions[currentQuestion];
+        document.getElementById('currentIdx').innerText = currentQuestion + 1;
+        document.getElementById('quoteDisplay').innerText = q.q;
+        document.getElementById('feedback').innerText = "";
+        document.getElementById('nextBtn').classList.add('hidden');
+        
+        const container = document.getElementById('optionsContainer');
+        container.innerHTML = "";
+        
+        q.options.forEach((opt, idx) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(idx);
+            container.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(selectedIdx) {
+        const q = questions[currentQuestion];
+        const buttons = document.querySelectorAll('.option-btn');
+        
+        buttons.forEach(btn => btn.disabled = true);
+        
+        if (selectedIdx === q.correct) {
+            buttons[selectedIdx].classList.add('correct');
+            document.getElementById('feedback').style.color = "var(--success-green)";
+            document.getElementById('feedback').innerText = "Richtig! " + q.info;
+        } else {
+            buttons[selectedIdx].classList.add('wrong');
+            buttons[q.correct].classList.add('correct');
+            document.getElementById('feedback').style.color = "var(--error-red)";
+            document.getElementById('feedback').innerText = "Nicht ganz. " + q.info;
+        }
+
+        if (currentQuestion < questions.length - 1) {
+            document.getElementById('nextBtn').classList.remove('hidden');
+        } else {
+            document.getElementById('restartBtn').classList.remove('hidden');
+        }
+    }
+
+    function nextQuestion() {
+        currentQuestion++;
+        loadQuestion();
+    }
+
+    function restartQuiz() {
+        currentQuestion = 0;
+        document.getElementById('restartBtn').classList.add('hidden');
+        loadQuestion();
+    }
+
+    // Start
+    loadQuestion();
+</script>
+
+</body>
+</html>
