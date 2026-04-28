@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Lückentext: Sofort-Feedback</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --success: #27ae60;
+            --error: #e74c3c;
+            --bg: #f0f2f5;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--primary);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            max-width: 700px;
+            width: 100%;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        h2 { text-align: center; margin-bottom: 25px; }
+
+        .dialog-box {
+            background: #fff;
+            border: 2px solid #edf2f7;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            line-height: 1.6;
+            transition: all 0.3s ease;
+        }
+
+        .speaker {
+            font-weight: bold;
+            color: var(--accent);
+        }
+
+        select {
+            padding: 8px 12px;
+            font-size: 1rem;
+            border: 2px solid #cbd5e0;
+            border-radius: 8px;
+            background-color: white;
+            cursor: pointer;
+            margin: 5px 0;
+            width: auto;
+            min-width: 150px;
+        }
+
+        select.correct { border-color: var(--success); background-color: #f0fff4; color: #22543d; }
+        select.incorrect { border-color: var(--error); background-color: #fff5f5; color: #822727; }
+
+        .feedback-text {
+            display: block;
+            font-size: 0.9rem;
+            margin-top: 8px;
+            font-weight: bold;
+            min-height: 1.2rem;
+        }
+
+        .btn-reset {
+            display: block;
+            margin: 30px auto 0;
+            padding: 12px 30px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        @media (max-width: 480px) {
+            select { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Dialoge vervollständigen</h2>
+    <p style="text-align: center;">Wähle die passende Antwort. Das Feedback erscheint sofort.</p>
+
+    <div id="quiz-container"></div>
+
+    <button class="btn-reset" onclick="initQuiz()">Aufgaben zurücksetzen</button>
+</div>
+
+<script>
+    const dialogs = [
+        {
+            context: "Lob für ein Bild:",
+            text: "Ты нарисовала картину? Да, <select onchange='check(this, \"ничего\")'></select> получилось!",
+            options: ["ничего", "никто", "нигде"],
+            info: "Richtig! 'ничего' bedeutet hier 'nicht schlecht' (неплохо)."
+        },
+        {
+            context: "Umgangssprachliche Verstärkung:",
+            text: "Как тебе дизайн? <select onchange='check(this, \"ничего так\")'></select> получилось, мне нравится!",
+            options: ["никогда", "ничего так", "ничто так"],
+            info: "Richtig! 'ничего так' ist eine typische Verstärkung für 'ganz gut'."
+        },
+        {
+            context: "Kompliment für eine Frau:",
+            text: "Ты видел мою сестру? Да, а эта девушка <select onchange='check(this, \"ничего\")'></select>!",
+            options: ["ничё так", "ничего", "никак"],
+            info: "Richtig! 'ничего' bedeutet hier, dass sie hübsch/sympathisch ist."
+        },
+        {
+            context: "Schnelle Umgangssprache (Kurzform):",
+            text: "Как фильм? <select onchange='check(this, \"ничё\")'></select> так, можно посмотреть.",
+            options: ["ничё", "ничего", "нечё"],
+            info: "Richtig! 'ничё' ist die im Video erwähnte Kurzform."
+        },
+        {
+            context: "Kompliment für einen Mann:",
+            text: "Этот новый актёр <select onchange='check(this, \"ничего такой\")'></select>, правда?",
+            options: ["ничего такой", "ничего того", "ничего так"],
+            info: "Richtig! 'ничего такой' bezieht sich positiv auf eine männliche Person."
+        },
+        {
+            context: "Lob für eine Leistung:",
+            text: "Ну как я выступил? <select onchange='check(this, \"ничего\")'></select> получилось, молодец!",
+            options: ["нисколько", "ничего", "никогда"],
+            info: "Richtig! Auch hier wird eine Leistung positiv bewertet."
+        }
+    ];
+
+    function initQuiz() {
+        const container = document.getElementById('quiz-container');
+        container.innerHTML = "";
+        
+        dialogs.forEach((d, index) => {
+            const div = document.createElement('div');
+            div.className = "dialog-box";
+            div.innerHTML = `<small><i>${d.context}</i></small><br>${d.text}<div class="feedback-text" id="fb-${index}"></div>`;
+            container.appendChild(div);
+            
+            const select = div.querySelector('select');
+            select.id = `select-${index}`;
+            
+            // Optionen mischen
+            const shuffled = [...d.options].sort(() => Math.random() - 0.5);
+            
+            const defaultOpt = document.createElement('option');
+            defaultOpt.text = "... auswählen ...";
+            defaultOpt.value = "";
+            select.appendChild(defaultOpt);
+            
+            shuffled.forEach(opt => {
+                const o = document.createElement('option');
+                o.text = opt;
+                o.value = opt;
+                select.appendChild(o);
+            });
+        });
+    }
+
+    function check(select, correct) {
+        const fbId = "fb-" + select.id.split('-')[1];
+        const feedback = document.getElementById(fbId);
+        const index = select.id.split('-')[1];
+
+        if (select.value === correct) {
+            select.className = "correct";
+            feedback.innerText = dialogs[index].info;
+            feedback.style.color = "var(--success)";
+            select.disabled = true;
+        } else if (select.value === "") {
+            select.className = "";
+            feedback.innerText = "";
+        } else {
+            select.className = "incorrect";
+            feedback.innerText = "Versuch es nochmal! Das passt hier nicht.";
+            feedback.style.color = "var(--error)";
+        }
+    }
+
+    initQuiz();
+</script>
+
+</body>
+</html>
